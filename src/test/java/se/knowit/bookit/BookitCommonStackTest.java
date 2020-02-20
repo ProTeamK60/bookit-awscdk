@@ -10,14 +10,14 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 
-public class BookitVpcStackTest {
+public class BookitCommonStackTest {
     private final static ObjectMapper JSON =
         new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
 
     @Test
     public void testStack() throws IOException {
         App app = new App();
-        VpcStack stack = new VpcStack(app, "test");
+        CommonStack stack = new CommonStack(app, "test");
 
         // synthesize the stack to a CloudFormation template and compare against
         // a checked-in JSON file.
