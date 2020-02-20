@@ -1,0 +1,944 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "This stack deploys the core network infrastructure and IAM resources to be used for a service hosted in Amazon ECS using AWS Fargate.",
+    "Mappings": {
+        "SubnetConfig": {
+            "VPC": {
+                "CIDR": "10.0.0.0/16"
+            },
+            "PublicOne": {
+                "CIDR": "10.0.0.0/24"
+            },
+            "PublicTwo": {
+                "CIDR": "10.0.1.0/24"
+            },
+            "PublicThree": {
+                "CIDR": "10.0.2.0/24"
+            },
+            "PrivateOne": {
+                "CIDR": "10.0.3.0/24"
+            },
+            "PrivateTwo": {
+                "CIDR": "10.0.4.0/24"
+            },
+            "PrivateThree": {
+                "CIDR": "10.0.5.0/24"
+            }
+        }
+    },
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "EnableDnsSupport": true,
+                "EnableDnsHostnames": true,
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "VPC",
+                        "CIDR"
+                    ]
+                }
+            }
+        },
+        "PublicSubnetOne": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        0,
+                        {
+                            "Fn::GetAZs": {
+                                "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "PublicOne",
+                        "CIDR"
+                    ]
+                },
+                "MapPublicIpOnLaunch": true
+            }
+        },
+        "PublicSubnetTwo": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        1,
+                        {
+                            "Fn::GetAZs": {
+                                "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "PublicTwo",
+                        "CIDR"
+                    ]
+                },
+                "MapPublicIpOnLaunch": true
+            }
+        },
+        "PublicSubnetThree": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        2,
+                        {
+                            "Fn::GetAZs": {
+                                "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "PublicThree",
+                        "CIDR"
+                    ]
+                },
+                "MapPublicIpOnLaunch": true
+            }
+        },
+        "PrivateSubnetOne": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        0,
+                        {
+                            "Fn::GetAZs": {
+                                "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "PrivateOne",
+                        "CIDR"
+                    ]
+                }
+            }
+        },
+        "PrivateSubnetTwo": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        1,
+                        {
+                            "Fn::GetAZs": {
+                                "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "PrivateTwo",
+                        "CIDR"
+                    ]
+                }
+            }
+        },
+        "PrivateSubnetThree": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        2,
+                        {
+                            "Fn::GetAZs": {
+                                "Ref": "AWS::Region"
+                            }
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "PrivateThree",
+                        "CIDR"
+                    ]
+                }
+            }
+        },
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway"
+        },
+        "GatewayAttachement": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "InternetGateway"
+                }
+            }
+        },
+        "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "GatewayAttachement",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "InternetGateway"
+                }
+            }
+        },
+        "PublicSubnetOneRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PublicSubnetOne"
+                },
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                }
+            }
+        },
+        "PublicSubnetTwoRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PublicSubnetTwo"
+                },
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                }
+            }
+        },
+        "PublicSubnetThreeRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PublicSubnetThree"
+                },
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                }
+            }
+        },
+        "NatGatewayOneAttachment": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": "GatewayAttachement",
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "NatGatewayTwoAttachment": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": "GatewayAttachement",
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "NatGatewayThreeAttachment": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": "GatewayAttachement",
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "NatGatewayOne": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "NatGatewayOneAttachment",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnetOne"
+                }
+            }
+        },
+        "NatGatewayTwo": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "NatGatewayTwoAttachment",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnetTwo"
+                }
+            }
+        },
+        "NatGatewayThree": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "NatGatewayThreeAttachment",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnetThree"
+                }
+            }
+        },
+        "PrivateRouteTableOne": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateRouteOne": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTableOne"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "NatGatewayOne"
+                }
+            }
+        },
+        "PrivateRouteTableOneAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTableOne"
+                },
+                "SubnetId": {
+                    "Ref": "PrivateSubnetOne"
+                }
+            }
+        },
+        "PrivateRouteTableTwo": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateRouteTwo": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTableTwo"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "NatGatewayTwo"
+                }
+            }
+        },
+        "PrivateRouteTableTwoAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTableTwo"
+                },
+                "SubnetId": {
+                    "Ref": "PrivateSubnetTwo"
+                }
+            }
+        },
+        "PrivateRouteTableThree": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateRouteThree": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTableThree"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "NatGatewayTwo"
+                }
+            }
+        },
+        "PrivateRouteTableThreeAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTableThree"
+                },
+                "SubnetId": {
+                    "Ref": "PrivateSubnetThree"
+                }
+            }
+        },
+        "FargateContainerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Access to the fargate containers from the Internet",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": {
+                            "Fn::FindInMap": [
+                                "SubnetConfig",
+                                "VPC",
+                                "CIDR"
+                            ]
+                        },
+                        "IpProtocol": -1
+                    }
+                ]
+            }
+        },
+        "EcsServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ecs.amazonaws.com",
+                                    "ecs-tasks.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "ecs-service",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:AttachNetworkInterface",
+                                        "ec2:CreateNetworkInterface",
+                                        "ec2:CreateNetworkInterfacePermission",
+                                        "ec2:DeleteNetworkInterface",
+                                        "ec2:DeleteNetworkInterfacePermission",
+                                        "ec2:Describe*",
+                                        "ec2:DetachNetworkInterface",
+                                        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                                        "elasticloadbalancing:DeregisterTargets",
+                                        "elasticloadbalancing:Describe*",
+                                        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                                        "elasticloadbalancing:RegisterTargets",
+                                        "iam:PassRole",
+                                        "ecr:GetAuthorizationToken",
+                                        "ecr:BatchCheckLayerAvailability",
+                                        "ecr:GetDownloadUrlForLayer",
+                                        "ecr:BatchGetImage",
+                                        "logs:DescribeLogStreams",
+                                        "logs:CreateLogStream",
+                                        "logs:CreateLogGroup",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "ECSTaskRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ecs-tasks.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "AmazonECSTaskRolePolicy",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogStream",
+                                        "logs:CreateLogGroup",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "cloudfrontdistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "This is the Cloudfront distribution serving the Bookit Application",
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 403,
+              "ResponsePagePath": "/index.html",
+              "ResponseCode": 200,
+              "ErrorCachingMinTTL": 300
+            },
+            {
+              "ErrorCode": 404,
+              "ResponsePagePath": "/index.html",
+              "ResponseCode": 200,
+              "ErrorCachingMinTTL": 300
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "AllowedMethods": [
+              "HEAD",
+              "GET",
+              "OPTIONS"
+            ],
+            "CachedMethods": [
+              "HEAD",
+              "GET"
+            ],
+            "Compress": false,
+            "DefaultTTL": 86400,
+            "FieldLevelEncryptionId": "",
+            "ForwardedValues": {
+              "Cookies": {
+                "Forward": "none"
+              },
+              "QueryString": false
+            },
+            "MaxTTL": 31536000,
+            "MinTTL": 0,
+            "SmoothStreaming": false,
+            "TargetOriginId": "S3-bookit-bucket",
+            "ViewerProtocolPolicy": "allow-all"
+          },
+          "DefaultRootObject": "index.html",
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "Origins": [
+            {
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "s3Bucket",
+                  "DomainName"
+                ]
+              },
+              "Id": "S3-bookit-bucket",
+              "OriginPath": "",
+              "S3OriginConfig": {
+                "OriginAccessIdentity": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      "origin-access-identity",
+                      "cloudfront",
+                      {
+                        "Ref": "cloudFormationOAI"
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ],
+          "PriceClass": "PriceClass_100",
+          "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true,
+            "MinimumProtocolVersion": "TLSv1"
+          },
+          "WebACLId": ""
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "9c7066c3-afac-4c54-af62-9077a333e723"
+        }
+      }
+    },
+    "cloudFormationOAI": {
+      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+      "Properties": {
+        "CloudFrontOriginAccessIdentityConfig": {
+          "Comment": "This OAI is used to restrict access to bookit-bucket S3 Bucket"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "718e3764-171c-4cb4-b974-567a0cc5a543"
+        }
+      }
+    },
+    "s3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "BucketOwnerFullControl",
+        "BucketName": "bookit-bucket",
+        "PublicAccessBlockConfiguration": {
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "BlockPublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "WebsiteConfiguration": {
+          "IndexDocument": "index.html"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "19408608-c711-4596-a3f5-acb4fcb1e966"
+        }
+      }
+    },
+    "s3BucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "s3Bucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    " ",
+                    [
+                      "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity",
+                      {
+                        "Ref": "cloudFormationOAI"
+                      }
+                    ]
+                  ]
+                }
+              },
+              "Resource": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "s3Bucket",
+                        "Arn"
+                      ]
+                    },
+                    "*"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+    },
+    "Outputs": {
+        "CurrentRegion": {
+            "Description": "REPLACE_ME_REGION",
+            "Value": {
+                "Ref": "AWS::Region"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "CurrentRegion"
+                        ]
+                    ]
+                }
+            }
+        },
+        "CurrentAccount": {
+            "Description": "REPLACE_ME_ACCOUNT_ID",
+            "Value": {
+                "Ref": "AWS::AccountId"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "CurrentAccount"
+                        ]
+                    ]
+                }
+            }
+        },
+        "EcsServiceRole": {
+            "Description": "REPLACE_ME_ECS_SERVICE_ROLE_ARN",
+            "Value": {
+                "Fn::GetAtt": [
+                    "EcsServiceRole",
+                    "Arn"
+                ]
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "EcsServiceRole"
+                        ]
+                    ]
+                }
+            }
+        },
+        "ECSTaskRole": {
+            "Description": "REPLACE_ME_ECS_TASK_ROLE_ARN",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ECSTaskRole",
+                    "Arn"
+                ]
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ECSTaskRole"
+                        ]
+                    ]
+                }
+            }
+        },
+        "VPCId": {
+            "Description": "REPLACE_ME_VPC_ID",
+            "Value": {
+                "Ref": "VPC"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "VPCId"
+                        ]
+                    ]
+                }
+            }
+        },
+        "PublicSubnetOne": {
+            "Description": "REPLACE_ME_PUBLIC_SUBNET_ONE",
+            "Value": {
+                "Ref": "PublicSubnetOne"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "PublicSubnetOne"
+                        ]
+                    ]
+                }
+            }
+        },
+        "PublicSubnetTwo": {
+            "Description": "REPLACE_ME_PUBLIC_SUBNET_TWO",
+            "Value": {
+                "Ref": "PublicSubnetTwo"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "PublicSubnetTwo"
+                        ]
+                    ]
+                }
+            }
+        },
+        "PublicSubnetThree": {
+            "Description": "REPLACE_ME_PUBLIC_SUBNET_THREE",
+            "Value": {
+                "Ref": "PublicSubnetThree"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "PublicSubnetThree"
+                        ]
+                    ]
+                }
+            }
+        },
+        "PrivateSubnetOne": {
+            "Description": "REPLACE_ME_PRIVATE_SUBNET_ONE",
+            "Value": {
+                "Ref": "PrivateSubnetOne"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "PrivateSubnetOne"
+                        ]
+                    ]
+                }
+            }
+        },
+        "PrivateSubnetTwo": {
+            "Description": "REPLACE_ME_PRIVATE_SUBNET_TWO",
+            "Value": {
+                "Ref": "PrivateSubnetTwo"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "PrivateSubnetTwo"
+                        ]
+                    ]
+                }
+            }
+        },
+        "PrivateSubnetThree": {
+            "Description": "REPLACE_ME_PRIVATE_SUBNET_THREE",
+            "Value": {
+                "Ref": "PrivateSubnetThree"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "PrivateSubnetThree"
+                        ]
+                    ]
+                }
+            }
+        },
+        "FargateContainerSecurityGroup": {
+            "Description": "REPLACE_ME_SECURITY_GROUP_ID",
+            "Value": {
+                "Ref": "FargateContainerSecurityGroup"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [
+                        ":",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "FargateContainerSecurityGroup"
+                        ]
+                    ]
+                }
+            }
+        }
+    }
+}
+
