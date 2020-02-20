@@ -17,7 +17,7 @@ public class BookitCommonStackTest {
     @Test
     public void testStack() throws IOException {
         App app = new App();
-        CommonStack stack = new CommonStack(app, "test");
+        BookitCommonStack stack = new BookitCommonStack(app, "test");
 
         // synthesize the stack to a CloudFormation template and compare against
         // a checked-in JSON file.
