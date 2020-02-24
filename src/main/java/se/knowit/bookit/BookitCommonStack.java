@@ -39,7 +39,6 @@ public class BookitCommonStack extends Stack {
     public BookitCommonStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
         BookitCommonStackConfig config = ConfigFactory.create(BookitCommonStackConfig.class);
-        System.out.println("config = " + config);
         // The code that defines your stack goes here
         vpc = Vpc.Builder.create(this, "vpc")
                 .maxAzs(config.maxAzs())  // Default is all AZs in region
