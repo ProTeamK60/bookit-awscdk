@@ -29,6 +29,7 @@ public class BookitApp {
                         .region(config.awsRegion())
                         .build()).build();
         BookitCommonStack bookitCommonStack = new BookitCommonStack(app, "BookitCommonStack", stackProps);
+        BookitBastionStack bookitBastionStack = new BookitBastionStack(app, "BookitBastionStack", bookitCommonStack, stackProps);
         app.synth();
     }
 }
