@@ -29,7 +29,12 @@ public class BookitApp {
                         .region(config.awsRegion())
                         .build()).build();
         BookitCommonStack bookitCommonStack = new BookitCommonStack(app, "BookitCommonStack", stackProps);
-        BookitBastionStack bookitBastionStack = new BookitBastionStack(app, "BookitBastionStack", bookitCommonStack, stackProps);
+        BookitBastionStack bookitBastionStack = new BookitBastionStack(app, "BookitBastionStack",
+                bookitCommonStack, stackProps);
+        BookitKafkaStack bookitKafkaStack = new BookitKafkaStack(app, "BookitKafkaStack",
+                bookitCommonStack, stackProps, bookitBastionStack.getPrivateIp());
+        BookitNamespaceStack bookitNamespaceStack = new BookitNamespaceStack(app, "BookitNamespaceStack",
+                bookitCommonStack, stackProps, bookitKafkaStack);
         app.synth();
     }
 }
